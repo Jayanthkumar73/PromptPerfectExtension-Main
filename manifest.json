@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Prompt Perfect",
   "version": "1.0.0",
-  "description": "Enhance your AI prompts using Gemini API before submitting them on any webpage.",
+  "description": "Enhance your AI prompts using Gemini API on ChatGPT, Claude, Gemini, Copilot, DeepSeek, and more.",
   "permissions": ["activeTab", "storage", "scripting"],
   "host_permissions": ["https://generativelanguage.googleapis.com/*"],
   "background": {
@@ -10,7 +10,23 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*",
+        "https://copilot.microsoft.com/*",
+        "https://www.bing.com/chat*",
+        "https://deepseek.com/*",
+        "https://chat.deepseek.com/*",
+        "https://chat.z.ai/*",
+        "https://lmarena.ai/*",
+        "https://arena.ai/*",
+        "https://kimi.moonshot.cn/*",
+        "https://kimi.ai/*",
+        "https://manus.im/*",
+        "https://manus.ai/*"
+      ],
       "js": ["content.js"],
       "css": ["content.css"],
       "run_at": "document_idle"

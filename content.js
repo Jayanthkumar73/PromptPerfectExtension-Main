@@ -30,15 +30,35 @@
       name: "Gemini",
       selector: '[contenteditable="true"][aria-label*="input"], textarea[placeholder*="Ask"], rich-textarea'
     },
-    perplexity: {
-      patterns: [/perplexity\.ai/],
-      name: "Perplexity",
-      selector: 'textarea[placeholder*="Ask"], [contenteditable="true"]'
-    },
     copilot: {
       patterns: [/copilot\.microsoft\.com/, /bing\.com\/chat/],
       name: "Copilot",
       selector: '[data-testid="chat-input"], textarea[placeholder*="Ask"], #userInput'
+    },
+    deepseek: {
+      patterns: [/deepseek\.com/, /chat\.deepseek\.com/],
+      name: "DeepSeek",
+      selector: 'textarea[placeholder*="Ask"], textarea[placeholder*="message"], [contenteditable="true"]'
+    },
+    zai: {
+      patterns: [/chat\.z\.ai/, /z\.ai/],
+      name: "Zai",
+      selector: 'textarea, [contenteditable="true"]'
+    },
+    lmarena: {
+      patterns: [/lmarena\.ai/, /arena\.ai/],
+      name: "LM Arena",
+      selector: 'textarea[placeholder*="message"], textarea[placeholder*="prompt"], [contenteditable="true"]'
+    },
+    kimi: {
+      patterns: [/kimi\.moonshot\.cn/, /kimi\.ai/],
+      name: "Kimi",
+      selector: 'textarea, [contenteditable="true"], [data-testid="chat-input"]'
+    },
+    manus: {
+      patterns: [/manus\.im/, /manus\.ai/],
+      name: "Manus",
+      selector: 'textarea, [contenteditable="true"]'
     }
   };
 
