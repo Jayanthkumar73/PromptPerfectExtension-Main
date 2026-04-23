@@ -50,29 +50,7 @@
   padding: 12px 14px 8px;
 }
 
-/* ─── Platform Badge ─────────────────────────────────── */
-#pp-overlay .pp-platform-badge {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 14px 8px;
-  margin: -4px 0 4px;
-}
 
-#pp-overlay .pp-platform-indicator {
-  font-size: 12px;
-  font-weight: 600;
-  color: #3ecfb2;
-  background: rgba(62, 207, 178, 0.1);
-  padding: 3px 8px;
-  border-radius: 12px;
-  border: 1px solid rgba(62, 207, 178, 0.2);
-}
-
-#pp-overlay .pp-auto-detect {
-  font-size: 10px;
-  color: #555;
-}
 
 #pp-overlay .pp-brand {
   font-weight: 700;

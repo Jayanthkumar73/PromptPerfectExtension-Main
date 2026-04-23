@@ -5,6 +5,7 @@
 
   // ─── State ───────────────────────────────────────────
   let activeTextbox = null;
+  let positionElement = null;
   let overlay = null;
   let triggerBtn = null;
   let isOverlayVisible = false;
@@ -167,20 +168,19 @@
     return btn;
   }
 
-  function positionTrigger(textbox) {
-    if (!triggerBtn) return;
-    const rect = textbox.getBoundingClientRect();
-    triggerBtn.style.top = `${rect.top + window.scrollY + 6}px`;
-    triggerBtn.style.left = `${rect.right + window.scrollX - 32}px`;
+  function positionTrigger() {
+    if (!triggerBtn || !positionElement) return;
+    const rect = positionElement.getBoundingClientRect();
+    triggerBtn.style.top = `${rect.top + window.scrollY - 34}px`;
+    triggerBtn.style.left = `${rect.left + window.scrollX}px`;
   }
 
-  function showTrigger(textbox) {
+  function showTrigger() {
     if (!triggerBtn) {
       triggerBtn = createTriggerButton();
       document.body.appendChild(triggerBtn);
     }
-    activeTextbox = textbox;
-    positionTrigger(textbox);
+    positionTrigger();
     triggerBtn.style.display = "flex";
   }
 
@@ -191,7 +191,6 @@
   // ─── Overlay Panel ───────────────────────────────────
   function createOverlay() {
     const detectedPlatform = detectPlatform();
-    const platformName = getPlatformName(detectedPlatform);
 
     const panel = document.createElement("div");
     panel.id = "pp-overlay";
@@ -209,10 +208,6 @@
         <button class="pp-close-btn" title="Close">✕</button>
       </div>
 
-      <div class="pp-platform-badge">
-        <span class="pp-platform-indicator">🎯 ${platformName}</span>
-        <span class="pp-auto-detect">Auto-detected</span>
-      </div>
 
       <div class="pp-actions">
         <button class="pp-action-btn pp-perfect-btn">
@@ -229,12 +224,6 @@
       <div class="pp-feedback-area" style="display:none;">
         <textarea class="pp-feedback-input" placeholder="Add feedback to improve the prompt..." rows="2"></textarea>
         <button class="pp-feedback-submit">Apply Feedback</button>
-      </div>
-
-      <div class="pp-input-row">
-        <input type="text" class="pp-prompt-input" placeholder="Or type a new prompt here..." />
-        <button class="pp-insert-btn" title="Insert saved prompt">➕</button>
-        <button class="pp-mic-btn" title="Voice input">🎤</button>
       </div>
 
       <div class="pp-status-bar">
@@ -255,18 +244,17 @@
   }
 
   function positionOverlay() {
-    if (!overlay || !activeTextbox) return;
-    const rect = activeTextbox.getBoundingClientRect();
+    if (!overlay || !positionElement) return;
+    const rect = positionElement.getBoundingClientRect();
     const overlayRect = overlay.getBoundingClientRect();
-    const viewportH = window.innerHeight;
 
-    // Default: below the textbox
-    let top = rect.bottom + window.scrollY + 8;
+    // Default: above the textbox
+    let top = rect.top + window.scrollY - overlayRect.height - 8;
     let left = rect.left + window.scrollX;
 
-    // Flip above if it overflows bottom
-    if (rect.bottom + overlayRect.height + 16 > viewportH) {
-      top = rect.top + window.scrollY - overlayRect.height - 8;
+    // Flip below if it overflows top
+    if (top < window.scrollY) {
+      top = rect.bottom + window.scrollY + 8;
     }
 
     // Clamp left
@@ -313,7 +301,7 @@
     }
     isOverlayVisible = false;
     if (activeTextbox && document.contains(activeTextbox)) {
-      showTrigger(activeTextbox);
+      showTrigger();
     }
   }
 
@@ -360,26 +348,33 @@
     });
 
     // Insert saved prompt button
-    overlay.querySelector(".pp-insert-btn").addEventListener("click", () => {
-      toggleSavedPrompts();
-    });
-
-    // Mic button
-    overlay.querySelector(".pp-mic-btn").addEventListener("click", () => {
-      toggleMic();
-    });
-
-    // Saved prompts button
-    overlay
-      .querySelector(".pp-saved-prompts-btn")
-      .addEventListener("click", () => {
+    const insertBtn = overlay.querySelector(".pp-insert-btn");
+    if (insertBtn) {
+      insertBtn.addEventListener("click", () => {
         toggleSavedPrompts();
       });
+    }
+
+    // Mic button
+    const micBtn = overlay.querySelector(".pp-mic-btn");
+    if (micBtn) {
+      micBtn.addEventListener("click", () => {
+        toggleMic();
+      });
+    }
+
+    // Saved prompts button
+    const savedPromptsBtn = overlay.querySelector(".pp-saved-prompts-btn");
+    if (savedPromptsBtn) {
+      savedPromptsBtn.addEventListener("click", () => {
+        toggleSavedPrompts();
+      });
+    }
 
     // Prompt input — Enter key to insert
-    overlay
-      .querySelector(".pp-prompt-input")
-      .addEventListener("keydown", (e) => {
+    const promptInput = overlay.querySelector(".pp-prompt-input");
+    if (promptInput) {
+      promptInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
           const inputText = e.target.value.trim();
@@ -390,6 +385,7 @@
           }
         }
       });
+    }
 
     // Stop click propagation so overlay doesn't close itself
     overlay.addEventListener("click", (e) => {
@@ -437,6 +433,9 @@
         if (response?.success) {
           setTextInBox(activeTextbox, response.result);
           setStatus("✓ Prompt perfected!");
+          setTimeout(() => {
+            hideOverlay();
+          }, 1500);
         } else {
           setStatus("✗ " + (response?.error || "Unknown error"));
         }
@@ -645,15 +644,42 @@
 
   // ─── Focus Listener ──────────────────────────────────
   function handleFocus(e) {
-    const el = e.target;
+    let el = e.target;
     if (!isEditable(el)) return;
 
     // Don't trigger on our own elements
     if (el.closest && el.closest("#pp-overlay")) return;
     if (el.id === "pp-trigger") return;
 
-    activeTextbox = el;
-    showTrigger(el);
+    // Find the root contenteditable element for text extraction
+    let editableRoot = el;
+    if (editableRoot.isContentEditable) {
+      while (editableRoot.parentElement && editableRoot.parentElement.isContentEditable) {
+        editableRoot = editableRoot.parentElement;
+      }
+    }
+    activeTextbox = editableRoot;
+
+    // Find the visible container for positioning (to avoid moving when scrolling inside)
+    let posEl = editableRoot;
+    let parent = editableRoot.parentElement;
+    let steps = 0;
+    while (parent && parent !== document.body && steps < 4) {
+      const style = window.getComputedStyle(parent);
+      if (
+        style.overflowY === "auto" ||
+        style.overflowY === "scroll" ||
+        (style.maxHeight && style.maxHeight !== "none" && style.maxHeight !== "0px")
+      ) {
+        posEl = parent;
+        break;
+      }
+      parent = parent.parentElement;
+      steps++;
+    }
+    positionElement = posEl;
+
+    showTrigger();
   }
 
   function handleBlur(e) {
@@ -686,8 +712,8 @@
   // ─── Scroll / Resize Repositioning ──────────────────
   function handleReposition() {
     if (isOverlayVisible) positionOverlay();
-    if (triggerBtn && triggerBtn.style.display !== "none" && activeTextbox) {
-      positionTrigger(activeTextbox);
+    if (triggerBtn && triggerBtn.style.display !== "none" && positionElement) {
+      positionTrigger();
     }
   }
 
@@ -699,6 +725,7 @@
     document.addEventListener("click", handleOutsideClick, true);
     window.addEventListener("scroll", handleReposition, true);
     window.addEventListener("resize", handleReposition, true);
+    setInterval(handleReposition, 100);
   }
 
   // Wait for DOM ready
