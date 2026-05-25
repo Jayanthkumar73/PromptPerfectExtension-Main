@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Load saved settings
   chrome.storage.sync.get(
-    { apiKey: "", model: "gemini-2.5-flash" },
+    { apiKey: "", model: "gemini-3.5-flash" },
     (settings) => {
       apiKeyInput.value = settings.apiKey;
       modelSelect.value = settings.model;

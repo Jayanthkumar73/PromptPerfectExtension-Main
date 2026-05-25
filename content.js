@@ -60,6 +60,46 @@
       patterns: [/manus\.im/, /manus\.ai/],
       name: "Manus",
       selector: 'textarea, [contenteditable="true"]'
+    },
+    github_copilot: {
+      patterns: [/github\.com\/copilot/],
+      name: "GitHub Copilot",
+      selector: 'textarea[placeholder*="Copilot"], textarea, [contenteditable="true"]'
+    },
+    aistudio: {
+      patterns: [/aistudio\.google\.com/],
+      name: "AI Studio",
+      selector: 'textarea, [contenteditable="true"]'
+    },
+    grok: {
+      patterns: [/grok\.com/, /x\.com\/i\/grok/],
+      name: "Grok",
+      selector: 'textarea, [contenteditable="true"]'
+    },
+    poe: {
+      patterns: [/poe\.com/],
+      name: "Poe",
+      selector: 'textarea, [contenteditable="true"]'
+    },
+    huggingchat: {
+      patterns: [/huggingface\.co\/chat/],
+      name: "HuggingChat",
+      selector: 'textarea, [contenteditable="true"]'
+    },
+    v0: {
+      patterns: [/v0\.dev/],
+      name: "v0.dev",
+      selector: 'textarea, [contenteditable="true"]'
+    },
+    notebooklm: {
+      patterns: [/notebooklm\.google/],
+      name: "NotebookLM",
+      selector: 'textarea, [contenteditable="true"]'
+    },
+    phind: {
+      patterns: [/phind\.com/],
+      name: "Phind",
+      selector: 'textarea, [contenteditable="true"]'
     }
   };
 
@@ -118,7 +158,7 @@
   function getSettings() {
     return new Promise((resolve) => {
       chrome.storage.sync.get(
-        { apiKey: "", model: "gemini-2.5-flash" },
+        { apiKey: "", model: "gemini-3.5-flash" },
         resolve
       );
     });
@@ -169,10 +209,7 @@
   }
 
   function positionTrigger() {
-    if (!triggerBtn || !positionElement) return;
-    const rect = positionElement.getBoundingClientRect();
-    triggerBtn.style.top = `${rect.top + window.scrollY - 34}px`;
-    triggerBtn.style.left = `${rect.left + window.scrollX}px`;
+    // Styled via position: fixed in CSS. No dynamic calculation needed.
   }
 
   function showTrigger() {
@@ -180,7 +217,6 @@
       triggerBtn = createTriggerButton();
       document.body.appendChild(triggerBtn);
     }
-    positionTrigger();
     triggerBtn.style.display = "flex";
   }
 
@@ -199,9 +235,8 @@
       <div class="pp-header">
         <span class="pp-brand">✦ Prompt Perfect</span>
         <select class="pp-model-select">
-          <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-          <option value="gemini-3.1-flash-lite-preview">Gemini 3.1 Flash Lite</option>
-          <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
+          <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+          <option value="gemini-3.5-pro">Gemini 3.5 Pro</option>
           <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
           <option value="gemini-2.0-flash-thinking-exp">Gemini 2.0 Flash Thinking</option>
         </select>
@@ -244,27 +279,7 @@
   }
 
   function positionOverlay() {
-    if (!overlay || !positionElement) return;
-    const rect = positionElement.getBoundingClientRect();
-    const overlayRect = overlay.getBoundingClientRect();
-
-    // Default: above the textbox
-    let top = rect.top + window.scrollY - overlayRect.height - 8;
-    let left = rect.left + window.scrollX;
-
-    // Flip below if it overflows top
-    if (top < window.scrollY) {
-      top = rect.bottom + window.scrollY + 8;
-    }
-
-    // Clamp left
-    if (left + overlayRect.width > window.innerWidth) {
-      left = window.innerWidth - overlayRect.width - 12;
-    }
-    if (left < 8) left = 8;
-
-    overlay.style.top = `${top}px`;
-    overlay.style.left = `${left}px`;
+    // Styled via position: fixed in CSS. No dynamic calculation needed.
   }
 
   function showOverlay() {
@@ -283,11 +298,6 @@
     overlay.style.display = "block";
     isOverlayVisible = true;
     hideTrigger();
-
-    // Position after render
-    requestAnimationFrame(() => {
-      positionOverlay();
-    });
   }
 
   function hideOverlay() {
@@ -644,7 +654,7 @@
 
   // ─── Focus Listener ──────────────────────────────────
   function handleFocus(e) {
-    let el = e.target;
+    let el = e.composedPath ? e.composedPath()[0] : e.target;
     if (!isEditable(el)) return;
 
     // Don't trigger on our own elements
@@ -659,73 +669,70 @@
       }
     }
     activeTextbox = editableRoot;
-
-    // Find the visible container for positioning (to avoid moving when scrolling inside)
-    let posEl = editableRoot;
-    let parent = editableRoot.parentElement;
-    let steps = 0;
-    while (parent && parent !== document.body && steps < 4) {
-      const style = window.getComputedStyle(parent);
-      if (
-        style.overflowY === "auto" ||
-        style.overflowY === "scroll" ||
-        (style.maxHeight && style.maxHeight !== "none" && style.maxHeight !== "0px")
-      ) {
-        posEl = parent;
-        break;
-      }
-      parent = parent.parentElement;
-      steps++;
-    }
-    positionElement = posEl;
+    positionElement = editableRoot;
 
     showTrigger();
   }
 
   function handleBlur(e) {
-    // Delay to allow trigger click
+    // Delay to allow clicking trigger or overlay without immediate hide
     setTimeout(() => {
-      const el = e.target;
-      if (!isEditable(el)) return;
-      // Only hide if nothing in our UI is focused
+      let activeEl = document.activeElement;
+      while (activeEl && activeEl.shadowRoot && activeEl.shadowRoot.activeElement) {
+        activeEl = activeEl.shadowRoot.activeElement;
+      }
+      if (!activeEl) return;
+      
+      // If focused element is not editable and not inside our UI, hide everything
       if (
-        !overlay?.contains(document.activeElement) &&
-        document.activeElement !== triggerBtn
+        !isEditable(activeEl) &&
+        activeEl !== triggerBtn &&
+        !overlay?.contains(activeEl)
       ) {
-        // Keep trigger visible for a bit
+        hideTrigger();
+        hideOverlay();
       }
     }, 200);
   }
 
   // ─── Outside Click ───────────────────────────────────
   function handleOutsideClick(e) {
-    if (
-      isOverlayVisible &&
-      overlay &&
-      !overlay.contains(e.target) &&
-      e.target !== triggerBtn
-    ) {
-      hideOverlay();
-    }
-  }
+    const el = e.composedPath ? e.composedPath()[0] : e.target;
 
-  // ─── Scroll / Resize Repositioning ──────────────────
-  function handleReposition() {
-    if (isOverlayVisible) positionOverlay();
-    if (triggerBtn && triggerBtn.style.display !== "none" && positionElement) {
-      positionTrigger();
+    // If click is inside our overlay or trigger button, do nothing
+    if (
+      (overlay && overlay.contains(el)) ||
+      (triggerBtn && triggerBtn.contains(el)) ||
+      el.id === "pp-trigger" ||
+      el.closest("#pp-overlay")
+    ) {
+      return;
+    }
+
+    // If the clicked element is an AI textbox, active it
+    if (isEditable(el)) {
+      let editableRoot = el;
+      if (editableRoot.isContentEditable) {
+        while (editableRoot.parentElement && editableRoot.parentElement.isContentEditable) {
+          editableRoot = editableRoot.parentElement;
+        }
+      }
+      activeTextbox = editableRoot;
+      positionElement = editableRoot;
+      showTrigger();
+    } else {
+      // Clicked outside AI textboxes and Prompt Perfect UI
+      hideTrigger();
+      hideOverlay();
     }
   }
 
   // ─── Init ────────────────────────────────────────────
   function init() {
-    // Capture phase to catch all focus events
+    // Capture phase to catch focus and click events accurately
     document.addEventListener("focus", handleFocus, true);
     document.addEventListener("blur", handleBlur, true);
     document.addEventListener("click", handleOutsideClick, true);
-    window.addEventListener("scroll", handleReposition, true);
-    window.addEventListener("resize", handleReposition, true);
-    setInterval(handleReposition, 100);
   }
 
   // Wait for DOM ready

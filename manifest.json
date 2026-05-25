@@ -25,7 +25,17 @@
         "https://kimi.moonshot.cn/*",
         "https://kimi.ai/*",
         "https://manus.im/*",
-        "https://manus.ai/*"
+        "https://manus.ai/*",
+        "https://github.com/*",
+        "https://aistudio.google.com/*",
+        "https://grok.com/*",
+        "https://x.com/i/grok*",
+        "https://poe.com/*",
+        "https://huggingface.co/chat*",
+        "https://v0.dev/*",
+        "https://notebooklm.google.com/*",
+        "https://notebooklm.google/*",
+        "https://www.phind.com/*"
       ],
       "js": ["content.js"],
       "css": ["content.css"],
